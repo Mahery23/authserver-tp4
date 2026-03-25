@@ -25,6 +25,12 @@
         <sonar.coverage.jacoco.xmlReportPaths>
             target/site/jacoco/jacoco.xml
         </sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.exclusions>
+            src/main/java/com/example/authserver/fx/**
+        </sonar.exclusions>
+        <sonar.coverage.exclusions>
+            src/main/java/com/example/authserver/fx/**
+        </sonar.coverage.exclusions>
     </properties>
 
     <dependencies>
