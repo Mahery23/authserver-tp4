@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.example.authserver.fx.ProfileController"
+      styleClass="root-pane"
+      alignment="CENTER"
+      spacing="0">
+
+    <!-- Header -->
+    <VBox styleClass="header" alignment="CENTER" spacing="6">
+        <Label text="✅" styleClass="header-icon"/>
+        <Label fx:id="welcomeLabel" text="Bienvenue !" styleClass="header-title"/>
+        <Label fx:id="emailLabel" text="" styleClass="header-subtitle"/>
+    </VBox>
+
+    <!-- Content -->
+    <VBox styleClass="form-card" spacing="16">
+        <padding><Insets top="24" right="40" bottom="24" left="40"/></padding>
+
+        <Label text="Votre Token JWT" styleClass="form-title"/>
+
+        <Label text="Ce token prouve votre identité. Il expire dans 15 minutes."
+               styleClass="info-text" wrapText="true"/>
+
+        <TextArea fx:id="tokenArea"
+                  styleClass="token-area"
+                  editable="false"
+                  wrapText="true"
+                  prefHeight="100"/>
+
+        <HBox alignment="CENTER_RIGHT" spacing="8">
+            <Label fx:id="copyLabel" text="" styleClass="copy-label"/>
+            <Button text="📋 Copier le token"
+                    styleClass="btn-secondary"
+                    onAction="#copyToken"/>
+        </HBox>
+
+        <Label fx:id="expiresLabel" text="" styleClass="expires-label"/>
+
+        <Label fx:id="statusLabel" text="" styleClass="status-label"/>
+
+        <Button text="Se déconnecter"
+                styleClass="btn-logout"
+                maxWidth="Infinity"
+                onAction="#handleLogout"/>
+    </VBox>
+
+</VBox>
