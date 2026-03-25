@@ -28,6 +28,7 @@ public class CryptoService {
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int IV_SIZE = 12;
     private static final int TAG_LENGTH_BIT = 128;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final SecretKeySpec secretKey;
 
@@ -45,7 +46,7 @@ public class CryptoService {
     public String encrypt(String plainPassword) {
         try {
             byte[] iv = new byte[IV_SIZE];
-            new SecureRandom().nextBytes(iv);
+            SECURE_RANDOM.nextBytes(iv);
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey,
