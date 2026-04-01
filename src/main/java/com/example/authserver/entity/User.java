@@ -43,7 +43,6 @@ public class User {
 
     /**
      * Mot de passe chiffré (AES/CBC/PKCS5Padding) encodé en Base64.
-     * Déchiffrable uniquement avec la Server Master Key.
      */
     @Column(name = "password_encrypted", nullable = false)
     private String passwordEncrypted;

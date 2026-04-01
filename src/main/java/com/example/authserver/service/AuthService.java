@@ -72,7 +72,7 @@ public class AuthService {
      * @throws ResponseStatusException 401 si l'une des vérifications échoue
      */
     @Transactional
-    public LoginResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) throws CryptoException {
 
         // ── Étape 1 : Vérifier que l'email existe ─────────────────────────────
         User user = userRepository.findByEmail(request.getEmail())

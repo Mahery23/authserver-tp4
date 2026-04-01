@@ -3,6 +3,7 @@ package com.example.authserver.controller;
 import com.example.authserver.dto.LoginRequest;
 import com.example.authserver.dto.LoginResponse;
 import com.example.authserver.service.AuthService;
+import com.example.authserver.service.CryptoException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +34,7 @@ public class AuthController {
      * @return 200 + {accessToken, expiresAt} si valide, 401 sinon
      */
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) throws CryptoException {
         LoginResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }

@@ -1,7 +1,7 @@
 package com.example.authserver;
 
 import com.example.authserver.dto.LoginRequest;
-import com.example.authserver.service.CryptoService;
+import com.example.authserver.service.CryptoException;
 import com.example.authserver.service.HmacService;
 import com.example.authserver.service.UserService;
 import com.example.authserver.repository.UserRepository;
@@ -64,7 +64,7 @@ class AuthControllerIntegrationTest {
     private static final String PASSWORD = "testpassword";
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws CryptoException {
         // Créer l'utilisateur de test s'il n'existe pas déjà
         if (userRepository.findByEmail(EMAIL).isEmpty()) {
             userService.register(EMAIL, PASSWORD);
@@ -96,8 +96,8 @@ class AuthControllerIntegrationTest {
         LoginRequest req = buildValidRequest();
 
         mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").isNotEmpty())
                 .andExpect(jsonPath("$.expiresAt").isNumber());
@@ -113,8 +113,8 @@ class AuthControllerIntegrationTest {
         req.setHmac("0000000000000000000000000000000000000000000000000000000000000000");
 
         mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -136,8 +136,8 @@ class AuthControllerIntegrationTest {
         req.setHmac(hmac);
 
         mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -159,8 +159,8 @@ class AuthControllerIntegrationTest {
         req.setHmac(hmac);
 
         mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -175,14 +175,14 @@ class AuthControllerIntegrationTest {
 
         // Première requête : doit réussir
         mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
                 .andExpect(status().isOk());
 
         // Même nonce rejoué → doit échouer
         mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -204,8 +204,8 @@ class AuthControllerIntegrationTest {
         req.setHmac(hmac);
 
         mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -232,8 +232,8 @@ class AuthControllerIntegrationTest {
         LoginRequest req = buildValidRequest();
 
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -243,7 +243,7 @@ class AuthControllerIntegrationTest {
         assertThat(accessToken).isNotBlank();
 
         mockMvc.perform(get("/api/me")
-                .header("Authorization", "Bearer " + accessToken))
+                        .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value(EMAIL))
                 .andExpect(jsonPath("$.id").isNumber());
@@ -266,7 +266,7 @@ class AuthControllerIntegrationTest {
     @DisplayName("T10 - GET /api/me avec token invalide → 401")
     void meEndpoint_withInvalidToken_returns401() throws Exception {
         mockMvc.perform(get("/api/me")
-                .header("Authorization", "Bearer invalid.token.here"))
+                        .header("Authorization", "Bearer invalid.token.here"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -281,8 +281,8 @@ class AuthControllerIntegrationTest {
 
         // Register
         mockMvc.perform(post("/api/users/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"email\":\"" + newEmail + "\",\"password\":\"" + newPassword + "\"}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + newEmail + "\",\"password\":\"" + newPassword + "\"}"))
                 .andExpect(status().isCreated());
 
         // Login
@@ -298,8 +298,8 @@ class AuthControllerIntegrationTest {
         req.setHmac(hmac);
 
         mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").isNotEmpty());
     }
@@ -311,8 +311,8 @@ class AuthControllerIntegrationTest {
     @DisplayName("T12 - Register sans email → 400")
     void register_withoutEmail_returns400() throws Exception {
         mockMvc.perform(post("/api/users/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"password\":\"pass\"}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"password\":\"pass\"}"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -326,13 +326,13 @@ class AuthControllerIntegrationTest {
         LoginRequest req2 = buildValidRequest(); // nouveau nonce UUID
 
         mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req1)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req1)))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req2)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req2)))
                 .andExpect(status().isOk());
     }
 
@@ -345,8 +345,8 @@ class AuthControllerIntegrationTest {
         LoginRequest req = buildValidRequest();
 
         MvcResult result = mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -374,8 +374,8 @@ class AuthControllerIntegrationTest {
         req.setHmac(hmac);
 
         mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isUnauthorized());
     }
 }

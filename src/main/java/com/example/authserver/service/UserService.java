@@ -22,7 +22,7 @@ public class UserService {
      * @param password le mot de passe en clair (sera chiffré avant stockage)
      * @return l'utilisateur persisté
      */
-    public User register(String email, String password) {
+    public User register(String email, String password) throws CryptoException {
         User user = new User();
         user.setEmail(email);
         user.setPasswordEncrypted(cryptoService.encrypt(password));

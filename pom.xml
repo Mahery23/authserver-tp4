@@ -21,7 +21,7 @@
         <java.version>21</java.version>
         <jjwt.version>0.12.3</jjwt.version>
         <sonar.organization>mahery23</sonar.organization>
-        <sonar.projectKey>Mahery23_authserver-tp3</sonar.projectKey>
+        <sonar.projectKey>Mahery23_authserver-tp4</sonar.projectKey>
         <sonar.coverage.jacoco.xmlReportPaths>
             target/site/jacoco/jacoco.xml
         </sonar.coverage.jacoco.xmlReportPaths>
@@ -31,6 +31,8 @@
         <sonar.coverage.exclusions>
             src/main/java/com/example/authserver/fx/**
         </sonar.coverage.exclusions>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
     <dependencies>

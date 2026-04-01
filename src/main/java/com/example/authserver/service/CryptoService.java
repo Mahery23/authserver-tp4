@@ -1,5 +1,6 @@
 package com.example.authserver.service;
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -11,16 +12,9 @@ import java.security.SecureRandom;
 import java.util.Base64;
 
 /**
- * Service de chiffrement/déchiffrement AES-GCM réversible.
- *
- * <h2>Algorithme</h2>
- * <ul>
- *   <li>AES-128 (clé 16 octets)</li>
- *   <li>Mode GCM (authentifié, pas de padding nécessaire)</li>
- *   <li>IV aléatoire de 12 octets (recommandé pour GCM)</li>
- *   <li>Tag d'authentification de 128 bits</li>
- *   <li>Stockage : Base64(IV + ciphertext)</li>
- * </ul>
+ * Service de chiffrement/déchiffrement AES-GCM.
+ * La clé est injectée via la variable d'environnement APP_MASTER_KEY.
+ * Si la clé est absente, l'application refuse de démarrer.
  */
 @Service
 public class CryptoService {
@@ -28,22 +22,38 @@ public class CryptoService {
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int IV_SIZE = 12;
     private static final int TAG_LENGTH_BIT = 128;
+    private static final int KEY_SIZE = 32;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
-    private final SecretKeySpec secretKey;
+    @Value("${APP_MASTER_KEY:#{null}}")
+    private String masterKey;
 
-    public CryptoService(@Value("${app.smk}") String smkHex) {
-        byte[] keyBytes = hexToBytes(smkHex.substring(0, 32));
+    private SecretKeySpec secretKey;
+
+    /**
+     * Vérifie que APP_MASTER_KEY est présente au démarrage.
+     * Refuse de démarrer si absente ou trop courte.
+     */
+    @PostConstruct
+    public void init() {
+        if (masterKey == null || masterKey.isBlank()) {
+            throw new IllegalStateException(
+                    "APP_MASTER_KEY est absente. L'application ne peut pas démarrer sans clé de chiffrement.");
+        }
+        if (masterKey.length() < KEY_SIZE) {
+            throw new IllegalStateException(
+                    "APP_MASTER_KEY doit faire au moins 32 caractères.");
+        }
+        byte[] keyBytes = masterKey.substring(0, KEY_SIZE)
+                .getBytes(StandardCharsets.UTF_8);
         this.secretKey = new SecretKeySpec(keyBytes, "AES");
     }
 
     /**
-     * Chiffre un mot de passe en clair avec AES-GCM.
-     *
-     * @param plainPassword le mot de passe en clair
-     * @return chaîne Base64 contenant IV (12 octets) + ciphertext + tag GCM
+     * Chiffre un mot de passe.
+     * Format de sortie : v1:Base64(iv):Base64(ciphertext)
      */
-    public String encrypt(String plainPassword) {
+    public String encrypt(String plainPassword) throws CryptoException {
         try {
             byte[] iv = new byte[IV_SIZE];
             SECURE_RANDOM.nextBytes(iv);
@@ -55,30 +65,27 @@ public class CryptoService {
             byte[] encrypted = cipher.doFinal(
                     plainPassword.getBytes(StandardCharsets.UTF_8));
 
-            byte[] combined = new byte[IV_SIZE + encrypted.length];
-            System.arraycopy(iv, 0, combined, 0, IV_SIZE);
-            System.arraycopy(encrypted, 0, combined, IV_SIZE, encrypted.length);
+            String ivB64 = Base64.getEncoder().encodeToString(iv);
+            String cipherB64 = Base64.getEncoder().encodeToString(encrypted);
 
-            return Base64.getEncoder().encodeToString(combined);
+            return "v1:" + ivB64 + ":" + cipherB64;
         } catch (Exception e) {
-            throw new RuntimeException("Erreur lors du chiffrement", e);
+            throw new CryptoException("Erreur lors du chiffrement", e);
         }
     }
 
     /**
-     * Déchiffre un mot de passe chiffré avec AES-GCM.
-     *
-     * @param encryptedBase64 la valeur Base64 stockée (IV + ciphertext + tag)
-     * @return le mot de passe en clair
+     * Déchiffre un mot de passe stocké au format v1:Base64(iv):Base64(ciphertext).
      */
-    public String decrypt(String encryptedBase64) {
+    public String decrypt(String encryptedValue) throws CryptoException {
         try {
-            byte[] combined = Base64.getDecoder().decode(encryptedBase64);
+            String[] parts = encryptedValue.split(":");
+            if (parts.length != 3 || !parts[0].equals("v1")) {
+                throw new CryptoException("Format de chiffrement invalide", null);
+            }
 
-            byte[] iv = new byte[IV_SIZE];
-            byte[] ciphertext = new byte[combined.length - IV_SIZE];
-            System.arraycopy(combined, 0, iv, 0, IV_SIZE);
-            System.arraycopy(combined, IV_SIZE, ciphertext, 0, ciphertext.length);
+            byte[] iv = Base64.getDecoder().decode(parts[1]);
+            byte[] ciphertext = Base64.getDecoder().decode(parts[2]);
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.DECRYPT_MODE, secretKey,
@@ -86,18 +93,10 @@ public class CryptoService {
 
             byte[] decrypted = cipher.doFinal(ciphertext);
             return new String(decrypted, StandardCharsets.UTF_8);
+        } catch (CryptoException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Erreur lors du déchiffrement", e);
+            throw new CryptoException("Erreur lors du déchiffrement", e);
         }
-    }
-
-    private byte[] hexToBytes(String hex) {
-        int len = hex.length();
-        byte[] data = new byte[len / 2];
-        for (int i = 0; i < len; i += 2) {
-            data[i / 2] = (byte) ((Character.digit(hex.charAt(i), 16) << 4)
-                    + Character.digit(hex.charAt(i + 1), 16));
-        }
-        return data;
     }
 }

@@ -3,6 +3,7 @@ package com.example.authserver.controller;
 import com.example.authserver.dto.MeResponse;
 import com.example.authserver.entity.User;
 import com.example.authserver.repository.UserRepository;
+import com.example.authserver.service.CryptoException;
 import com.example.authserver.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -36,7 +37,7 @@ public class UserController {
      * @return 201 Created
      */
     @PostMapping("/api/users/register")
-    public ResponseEntity<Map<String, String>> register(@RequestBody Map<String, String> body) {
+    public ResponseEntity<Map<String, String>> register(@RequestBody Map<String, String> body) throws CryptoException {
         String email = body.get("email");
         String password = body.get("password");
         if (email == null || password == null) {
