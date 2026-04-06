@@ -91,4 +91,36 @@ public class AuthClient {
         }
         return null;
     }
+
+    /**
+     * Change le mot de passe de l'utilisateur authentifie.
+     *
+     * @param token          JWT de l'utilisateur
+     * @param oldPassword    ancien mot de passe
+     * @param newPassword    nouveau mot de passe
+     * @param confirmPassword confirmation du nouveau mot de passe
+     * @return true si succes, false sinon
+     */
+    public static boolean changePassword(String token,
+                                         String oldPassword,
+                                         String newPassword,
+                                         String confirmPassword) throws Exception {
+        String body = mapper.writeValueAsString(
+                mapper.createObjectNode()
+                        .put("oldPassword", oldPassword)
+                        .put("newPassword", newPassword)
+                        .put("confirmPassword", confirmPassword)
+        );
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/api/auth/change-password"))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + token)
+                .PUT(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+
+        HttpResponse<String> response = client.send(request,
+                HttpResponse.BodyHandlers.ofString());
+        return response.statusCode() == 200;
+    }
 }

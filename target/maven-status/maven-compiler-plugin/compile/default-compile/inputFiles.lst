@@ -1,6 +1,8 @@
 C:\Users\User\IdeaProjects\authserver\src\main\java\com\example\authserver\service\JwtService.java
 C:\Users\User\IdeaProjects\authserver\src\main\java\com\example\authserver\config\SecurityConfig.java
 C:\Users\User\IdeaProjects\authserver\src\main\java\com\example\authserver\fx\ProfileController.java
+C:\Users\User\IdeaProjects\authserver\src\main\java\com\example\authserver\dto\ChangePasswordRequest.java
+C:\Users\User\IdeaProjects\authserver\src\main\java\com\example\authserver\service\PasswordValidator.java
 C:\Users\User\IdeaProjects\authserver\src\main\java\com\example\authserver\service\AuthService.java
 C:\Users\User\IdeaProjects\authserver\src\main\java\com\example\authserver\fx\AuthClient.java
 C:\Users\User\IdeaProjects\authserver\src\main\java\com\example\authserver\controller\AuthController.java

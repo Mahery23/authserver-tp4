@@ -121,4 +121,56 @@ public class AuthService {
 
         return new LoginResponse(token, expiresAtEpoch);
     }
+
+    /**
+     * Change le mot de passe d'un utilisateur authentifie.
+     *
+     * Etapes :
+     * 1. Verifier que l'utilisateur existe
+     * 2. Verifier que l'ancien mot de passe est correct
+     * 3. Verifier que newPassword == confirmPassword
+     * 4. Verifier la force du nouveau mot de passe
+     * 5. Chiffrer et sauvegarder le nouveau mot de passe
+     *
+     * @param email           email de l'utilisateur authentifie
+     * @param oldPassword     ancien mot de passe en clair
+     * @param newPassword     nouveau mot de passe en clair
+     * @param confirmPassword confirmation du nouveau mot de passe
+     * @throws CryptoException si le chiffrement echoue
+     */
+    @Transactional
+    public void changePassword(String email,
+                               String oldPassword,
+                               String newPassword,
+                               String confirmPassword) throws CryptoException {
+
+        // 1. Verifier que l'utilisateur existe
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Utilisateur introuvable."));
+
+        // 2. Verifier que l'ancien mot de passe est correct
+        String currentPlain = cryptoService.decrypt(user.getPasswordEncrypted());
+        if (!currentPlain.equals(oldPassword)) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "Ancien mot de passe incorrect.");
+        }
+
+        // 3. Verifier que newPassword == confirmPassword
+        if (!newPassword.equals(confirmPassword)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Les mots de passe ne correspondent pas.");
+        }
+
+        // 4. Verifier la force du nouveau mot de passe
+        try {
+            PasswordValidator.validate(newPassword);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+
+        // 5. Chiffrer et sauvegarder le nouveau mot de passe
+        user.setPasswordEncrypted(cryptoService.encrypt(newPassword));
+        userRepository.save(user);
+    }
 }
