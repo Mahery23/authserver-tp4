@@ -41,3 +41,6 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           APP_MASTER_KEY: test_master_key_for_ci_only_32chars
         run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=Mahery23_authserver-tp4
+
+      - name: Build Docker image
+        run: docker build -t authserver-tp5 .

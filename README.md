@@ -1,4 +1,4 @@
-# TP4 — Authentification et Master Key
+# TP5 - Evolution fonctionnelle et deploiement Docker
 
 ## Note pedagogique importante
 
@@ -13,15 +13,15 @@ Ce mecanisme est **pedagogique**.
 
 ---
 
-## Nouveautes TP4 par rapport a TP3
+## Nouveautes TP5 par rapport a TP4
 
-| Fonctionnalite | TP3 | TP4 |
+| Fonctionnalite | TP4 | TP5 |
 |---|---|---|
-| Source de la cle | `app.smk` dans application.properties | Variable d'environnement `APP_MASTER_KEY` |
-| Cle dans le code | Oui (mauvais) | Non (correct) |
-| Demarrage sans cle | Demarre quand meme | Refuse de demarrer |
-| Format stockage | `Base64(iv+ciphertext)` | `v1:Base64(iv):Base64(ciphertext)` |
-| CI/CD | GitHub Actions basique | CI complete avec blocage des merges |
+| Changement de mot de passe | Non | Oui |
+| Regles de complexite mot de passe | Non | Oui |
+| Conteneurisation Docker | Non | Oui |
+| Build Docker dans CI/CD | Non | Oui |
+| Interface JavaFX changement MDP | Non | Oui |
 
 ---
 
@@ -30,7 +30,7 @@ Ce mecanisme est **pedagogique**.
 Ce serveur implemente une authentification forte par preuve HMAC.
 **Le mot de passe ne circule jamais sur le reseau** (ni en clair, ni hache).
 
-### Flux d'authentification (SSO en 1 echange)
+### Flux d'authentification
 
 ```
 Client                                    Serveur
@@ -47,47 +47,78 @@ Client                                    Serveur
   | <----------------------------------------|
 ```
 
-### Calcul HMAC cote client
+---
 
+## Changement de mot de passe
+
+### Endpoint
+
+```http
+PUT /api/auth/change-password
+Authorization: Bearer eyJhbGci...
+Content-Type: application/json
+
+{
+  "oldPassword": "AncienMotDePasse1!",
+  "newPassword": "NouveauMotDePasse1!",
+  "confirmPassword": "NouveauMotDePasse1!"
+}
 ```
-message = email + ":" + nonce + ":" + timestamp
-hmac    = HMAC_SHA256(key=password, data=message)
-```
+
+### Regles de complexite du nouveau mot de passe
+
+- Minimum **12 caracteres**
+- Au moins une **majuscule**
+- Au moins une **minuscule**
+- Au moins un **chiffre**
+- Au moins un **caractere special** (!@#$%^&*...)
+
+### Logique serveur
+
+1. Verifier que l'utilisateur existe
+2. Verifier que l'ancien mot de passe est correct
+3. Verifier que newPassword == confirmPassword
+4. Verifier la force du nouveau mot de passe
+5. Chiffrer le nouveau mot de passe avec la Master Key
+6. Mettre a jour la base de donnees
 
 ---
 
-## Master Key
+## Docker
 
-### Principe
+### Pourquoi Docker ?
 
-La Master Key (APP_MASTER_KEY) est utilisee pour chiffrer les mots de passe avant stockage en base.
-Elle ne doit jamais etre dans le code source ni dans les fichiers de configuration commites.
+Docker permet de lancer l'application dans un conteneur isole.
+Peu importe l'ordinateur, ca marche toujours pareil.
 
-### Format de stockage
-
-```
-v1:Base64(iv):Base64(ciphertext)
-```
-
-Exemple :
-```
-v1:aGVsbG8=:d2Fzc3VwXzEyMw==
-```
-
-### Demarrage
-
-L'application refuse de demarrer si APP_MASTER_KEY est absente ou trop courte (< 32 caracteres).
-
-### Lancer en local
+### Builder l'image
 
 ```bash
-# Windows
-set APP_MASTER_KEY=votre_cle_secrete_de_32_caracteres_min
-mvn spring-boot:run
+docker build -t authserver-tp5 .
+```
 
-# Linux/Mac
-export APP_MASTER_KEY=votre_cle_secrete_de_32_caracteres_min
-mvn spring-boot:run
+### Lancer le conteneur
+
+```bash
+docker run -p 8080:8080 -e APP_MASTER_KEY=votre_cle_32_caracteres authserver-tp5
+```
+
+### Lancer en arriere-plan
+
+```bash
+docker run -d -p 8080:8080 -e APP_MASTER_KEY=votre_cle_32_caracteres authserver-tp5
+```
+
+### Voir les conteneurs actifs
+
+```bash
+docker ps
+```
+
+### Arreter un conteneur
+
+```bash
+docker stop <id_du_conteneur>
 ```
 
 ---
@@ -99,26 +130,30 @@ mvn spring-boot:run
 - **JJWT 0.12.3** pour les JWT
 - **AES-128/GCM** pour le chiffrement reversible des mots de passe
 - **JavaFX 21** pour l'interface utilisateur
+- **Docker** pour la conteneurisation
 
 ---
 
 ## Demarrage rapide
 
-### 1. Lancer le serveur
+### Option 1 — Avec Docker (recommande)
+
+```bash
+docker run -p 8080:8080 -e APP_MASTER_KEY=0123456789abcdef0123456789abcdef authserver-tp5
+```
+
+### Option 2 — Avec IntelliJ
 
 ```bash
 set APP_MASTER_KEY=0123456789abcdef0123456789abcdef
-mvn spring-boot:run
 ```
+Puis lance `AuthserverApplication` depuis IntelliJ.
 
 Un utilisateur de test est cree automatiquement :
 - Email : `alice@example.com`
 - Password : `password123`
 
-Console H2 : http://localhost:8080/h2-console
-JDBC URL : `jdbc:h2:mem:authdb`
-
-### 2. Lancer l'interface JavaFX
+### Lancer l'interface JavaFX
 
 Dans le panneau Maven d'IntelliJ :
 ```
@@ -137,14 +172,14 @@ Content-Type: application/json
 { "email": "user@example.com", "password": "monmotdepasse" }
 ```
 
-### Login (authentification forte)
+### Login
 ```http
 POST /api/auth/login
 Content-Type: application/json
 
 {
   "email": "user@example.com",
-  "nonce": "550e8400-e29b-41d4-a716-446655440000",
+  "nonce": "uuid-aleatoire",
   "timestamp": 1711234567,
   "hmac": "a3f1c2..."
 }
@@ -156,20 +191,31 @@ GET /api/me
 Authorization: Bearer eyJhbGci...
 ```
 
+### Changer le mot de passe
+```http
+PUT /api/auth/change-password
+Authorization: Bearer eyJhbGci...
+Content-Type: application/json
+
+{
+  "oldPassword": "AncienMDP1!",
+  "newPassword": "NouveauMDP1!",
+  "confirmPassword": "NouveauMDP1!"
+}
+```
+
 ---
 
 ## CI/CD GitHub Actions
 
-La pipeline se declenche automatiquement sur chaque push et pull request vers `main`.
+La pipeline se declenche automatiquement sur chaque push vers `main`.
 
 Elle effectue :
 1. Checkout du code
 2. Installation JDK 21
-3. Build Maven
-4. Execution des tests JUnit (40+ tests)
-5. Analyse SonarCloud
-6. Echec automatique si un test echoue
-7. Echec automatique si le Quality Gate SonarCloud echoue
+3. Build Maven + tests JUnit
+4. Analyse SonarCloud
+5. Build image Docker
 
 ### Secrets GitHub requis
 
@@ -177,25 +223,15 @@ Elle effectue :
 |---|---|
 | `SONAR_TOKEN` | Token d'authentification SonarCloud |
 
-### Variable d'environnement CI
-
-```yaml
-APP_MASTER_KEY: test_master_key_for_ci_only_32chars
-```
-
 ---
 
 ## Lancer les tests
 
 ```bash
 set APP_MASTER_KEY=test_master_key_for_ci_only_32chars
-mvn test
 ```
 
-Rapport de couverture JaCoCo :
-```
-target/site/jacoco/index.html
-```
+Puis dans IntelliJ : clic droit sur le dossier test → **Run 'All Tests'**
 
 ---
 
@@ -203,19 +239,20 @@ target/site/jacoco/index.html
 
 | Tag | Description |
 |---|---|
-| `v4.0-start` | Structure de base TP4 |
-| `v4.1-master-key` | Chiffrement AES-GCM + Master Key |
-| `v4.2-ci` | GitHub Actions CI/CD |
-| `v4.3-tests` | Tests Master Key |
-| `v4-tp4` | Tag final |
+| `v5.0-start` | Structure de base TP5 |
+| `v5.1-change-password` | Endpoint changement mot de passe |
+| `v5.2-docker` | Dockerfile + conteneurisation |
+| `v5.3-tests` | Tests JUnit changement mot de passe |
+| `v5-tp5` | Tag final |
 
 ---
 
 ## Avantages du protocole
 
-- Aucun mot de passe (clair ou hache) ne circule sur le reseau
+- Aucun mot de passe ne circule sur le reseau
 - Le timestamp limite la fenetre d'attaque a **60 secondes**
 - Le nonce empeche la **reutilisation** d'une requete interceptee
 - La comparaison en **temps constant** previent les timing attacks
 - La Master Key n'est jamais dans le code source
+- Le changement de mot de passe verifie la force du nouveau mot de passe
 - **Sans stockage du nonce en base, le nonce ne sert a rien contre le rejeu**
